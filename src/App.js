@@ -7,8 +7,8 @@ import PostList from './components/PostsList';
 function App() {
   return (
     <div className="App">
-      <Counter />
-      {/* <PostList /> */}
+      {/* <Counter /> */}
+      <PostList />
     </div>
   );
 }

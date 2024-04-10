@@ -21,62 +21,39 @@ clientsClaim();
 // even if you decide not to use precaching. See https://cra.link/PWA
 precacheAndRoute(self.__WB_MANIFEST);
 
-// Set up App Shell-style routing, so that all navigation requests
-// are fulfilled with your index.html shell. Learn more at
-// https://developers.google.com/web/fundamentals/architecture/app-shell
-const fileExtensionRegexp = new RegExp('/[^/?]+\\.[^/]+$');
-registerRoute(
-  // Return false to exempt requests from being fulfilled by index.html.
-  ({ request, url }) => {
-    // If this isn't a navigation, skip.
-    if (request.mode !== 'navigate') {
-      return false;
-    } // If this is a URL that starts with /_, skip.
+const CACHE_NAME = 'my-cache-v1';
+const urlsToCache = [
+  '/',
+  'https://jsonplaceholder.typicode.com/posts'
+];
 
-    if (url.pathname.startsWith('/_')) {
-      return false;
-    } // If this looks like a URL for a resource, because it contains // a file extension, skip.
-
-    if (url.pathname.match(fileExtensionRegexp)) {
-      return false;
-    } // Return true to signal that we want to use the handler.
-
-    return true;
-  },
-  createHandlerBoundToURL(process.env.PUBLIC_URL + '/index.html')
-);
-
-// An example runtime caching route for requests that aren't handled by the
-// precache, in this case same-origin .png requests like those from in public/
-registerRoute(
-  // Add in any other file extensions or routing criteria as needed.
-  ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('.png'), // Customize this strategy as needed, e.g., by changing to CacheFirst.
-  new StaleWhileRevalidate({
-    cacheName: 'images',
-    plugins: [
-      // Ensure that once this runtime cache reaches a maximum size the
-      // least-recently used images are removed.
-      new ExpirationPlugin({ maxEntries: 50 }),
-    ],
-  })
-);
-
-// registerRoute(
-//   'https://jsonplaceholder.typicode.com/posts',
-//   new StaleWhileRevalidate({
-//     cacheName: 'api-posts-cache',
-//     plugins: [
-//       new ExpirationPlugin({ maxEntries: 100 }),
-//     ],
-//   })
-// );
-
-// This allows the web app to trigger skipWaiting via
-// registration.waiting.postMessage({type: 'SKIP_WAITING'})
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
 });
 
-// Any other custom service worker logic can go here.
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Если запрос найден в кэше, возвращаем его из кэша
+        if (response) {
+          return response;
+        }
+
+        // Если запрос не найден в кэше, делаем фетч и добавляем результат в кэш
+        return fetch(event.request)
+          .then(response => {
+            // Клонируем ответ, чтобы его можно было использовать как в фетче, так и в кэше
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(event.request, responseToCache));
+
+            return response;
+          });
+      })
+  );
+});
