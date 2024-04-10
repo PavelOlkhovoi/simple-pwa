@@ -61,6 +61,16 @@ registerRoute(
   })
 );
 
+// registerRoute(
+//   'https://jsonplaceholder.typicode.com/posts',
+//   new StaleWhileRevalidate({
+//     cacheName: 'api-posts-cache',
+//     plugins: [
+//       new ExpirationPlugin({ maxEntries: 100 }),
+//     ],
+//   })
+// );
+
 // This allows the web app to trigger skipWaiting via
 // registration.waiting.postMessage({type: 'SKIP_WAITING'})
 self.addEventListener('message', (event) => {
